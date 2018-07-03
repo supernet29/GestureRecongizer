@@ -10,11 +10,15 @@ public class SampleManager {
        sampleList = new LinkedList();
     }
 
-    public synchronized void addSample(GestureSample sample) {
-        sampleList.add(sample);
+    public void addSample(GestureSample sample) {
+        synchronized (sampleList){
+            sampleList.add(sample);
+        }
     }
 
-    public synchronized List<GestureSample> getSampleList(){
-        return sampleList;
+    public List<GestureSample> getSampleList(){
+        synchronized (sampleList){
+            return sampleList;
+        }
     }
 }

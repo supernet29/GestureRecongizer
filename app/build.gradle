@@ -57,5 +57,8 @@ dependencies {
     implementation group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '3.4.1-1.4.1', classifier: "android-arm64"
     implementation group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '3.4.1-1.4.1', classifier: "android-x86"
     implementation group: 'org.bytedeco.javacpp-presets', name: 'opencv', version: '3.4.1-1.4.1', classifier: "android-x86_64"
+
+    implementation group: 'com.androidplot', name:'androidplot-core', version: '1.5.5'
+    implementation 'com.android.support:recyclerview-v7:27.1.1'
 }
 

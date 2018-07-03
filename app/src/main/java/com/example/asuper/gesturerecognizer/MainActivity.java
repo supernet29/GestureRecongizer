@@ -3,13 +3,28 @@ package com.example.asuper.gesturerecognizer;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.SimpleXYSeries;
+import com.androidplot.xy.XYGraphWidget;
+import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.XYSeries;
+
+import java.text.FieldPosition;
+import java.text.Format;
+import java.text.ParsePosition;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity
@@ -23,6 +38,16 @@ public class MainActivity extends AppCompatActivity
 
     private TextView countTextView;
     private Button collectButton;
+
+    private XYPlot plot;
+    private Number[] domainLabels;
+    private LineAndPointFormatter axFormater;
+    private LineAndPointFormatter ayFormater;
+    private LineAndPointFormatter azFormater;
+
+    private RecyclerView recyclerView;
+    private RecyclerView.LayoutManager layoutManager;
+    private SampleListViewAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -39,57 +64,101 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        timer = new Timer();
         sampleManager = new SampleManager();
-        sensorTask = new SensorTask(){
-            @Override
-            protected void onSensorData(float[] acceleratorData) {
-                sampleCollector.addSensorData(acceleratorData);
-                StringBuilder builder = new StringBuilder();
-                builder.append("X: ") .append(acceleratorData[0])
-                       .append(", Y: ") .append(acceleratorData[1])
-                       .append(", Z: ") .append(acceleratorData[2]);
-                Log.i("SensorOnTimer", builder.toString());
-            }
-        };
 
-        sampleCollector = new SampleCollector(5) {
+        sampleCollector = new SampleCollector(10) {
             @Override
             public void onSampleCollected(GestureSample sample) {
                 sampleManager.addSample(sample);
-                showSampleCount(sampleManager.getSampleList().size());
+                updateUIOnSample(sampleManager.getSampleList().size());
             }
         };
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        // Plot
+        plot = findViewById(R.id.sample_plot);
+        axFormater = new LineAndPointFormatter(this, R.xml.ax_formatter);
+        ayFormater = new LineAndPointFormatter(this, R.xml.ay_formatter);
+        azFormater = new LineAndPointFormatter(this, R.xml.az_formatter);
+        domainLabels = new Number[]{0, 1, 2, 3, 4};
+        plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM);
+
+        // sample manager;
+        recyclerView = findViewById(R.id.sample_list);
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+
+        View.OnClickListener elementListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                GestureSample sample = (GestureSample) v.getTag();
+                LinkedList<float[]> data = sample.getSampleData();
+                int size = data.size();
+                Number[] ax = new Number[size];
+                Number[] ay = new Number[size];
+                Number[] az = new Number[size];
+                int i = 0;
+                for(float[] point : data) {
+                    ax[i] = point[0];
+                    ay[i] = point[1];
+                    az[i] = point[2];
+                    i++;
+                }
+                XYSeries axSeries = new SimpleXYSeries(Arrays.asList(ax), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "AX");
+                XYSeries aySeries = new SimpleXYSeries(Arrays.asList(ay), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "AY");
+                XYSeries azSeries = new SimpleXYSeries(Arrays.asList(az), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "AZ");
+                plot.clear();
+                plot.addSeries(axSeries, axFormater);
+                plot.addSeries(aySeries, ayFormater);
+                plot.addSeries(azSeries, azFormater);
+                plot.redraw();
+            }
+        };
+        adapter = new SampleListViewAdapter(elementListener);
+        recyclerView.setAdapter(adapter);
     }
 
     @Override
-    protected void onResume()
+    protected void onStart()
     {
-        super.onResume();
+        super.onStart();
         Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         if(accelerometer == null) {
             Log.i("Sensor", "There are no sensor");
         }else{
+            timer =  new Timer();
+            sensorTask = new SensorTask(){
+                @Override
+                protected void onSensorData(float[] acceleratorData) {
+                    sampleCollector.addSensorData(acceleratorData);
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("X: ") .append(acceleratorData[0])
+                            .append(", Y: ") .append(acceleratorData[1])
+                            .append(", Z: ") .append(acceleratorData[2]);
+                    Log.i("SensorOnTimer", builder.toString());
+                }
+            };
             sensorManager.registerListener(sensorTask, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
-            timer.schedule(sensorTask, 0, 300);
+            timer.schedule(sensorTask, 0, 100);
         }
     }
 
     @Override
-    protected void onPause()
+    protected void onStop()
     {
-        super.onPause();
-        sensorManager.unregisterListener(sensorTask);
+        super.onStop();
         timer.cancel();
+        sensorManager.unregisterListener(sensorTask);
     }
 
-    public void showSampleCount(int size) {
+    public void updateUIOnSample(int size) {
         final int count = size;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 countTextView.setText("Sample number: " + count);
+                adapter.setSamples(sampleManager.getSampleList());
             }
         });
     }
