@@ -5,6 +5,8 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 
@@ -29,7 +31,7 @@ public class SampleListViewAdapter extends RecyclerView.Adapter<SampleListViewAd
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.mTextView.setText("sample " + position);
+        holder.setSampleTitle("sample " + position);
         holder.setOnclickListener(elementListener);
         holder.setGestureSample(samples.get(position));
     }
@@ -51,20 +53,37 @@ public class SampleListViewAdapter extends RecyclerView.Adapter<SampleListViewAd
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder{
-        private View v;
-        public TextView mTextView;
-        public ViewHolder(View v){
-            super(v);
-            this.v = v;
-            mTextView = v.findViewById(R.id.sample_element_txt);
+        private View view;
+        private TextView mTextView;
+        private EditText mCode;
+        private Button mButton;
+
+        public ViewHolder(final View view){
+            super(view);
+            this.view = view;
+            this.mTextView = view.findViewById(R.id.sample_element_txt);
+            this.mCode = view.findViewById(R.id.code);
+            this.mButton = view.findViewById(R.id.code_change_btn);
+            this.mButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int code = Integer.parseInt(mCode.getText().toString());
+                    GestureSample sample = (GestureSample)view.getTag();
+                    sample.setGestureCode(code);
+                }
+            });
+        }
+
+        public void setSampleTitle(String title) {
+            mTextView.setText(title);
         }
 
         public void setGestureSample(GestureSample sample) {
-            v.setTag(sample);
+            view.setTag(sample);
         }
 
         public void setOnclickListener(View.OnClickListener listener) {
-            v.setOnClickListener(listener);
+            view.setOnClickListener(listener);
         }
     }
 }

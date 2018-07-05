@@ -20,6 +20,20 @@ import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYSeries;
 
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.inputs.InputType;
+import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.conf.layers.PoolingType;
+import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.learning.config.Nesterovs;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
+
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParsePosition;
@@ -48,6 +62,8 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
     private SampleListViewAdapter adapter;
+
+    private MultiLayerNetwork recognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -117,6 +133,48 @@ public class MainActivity extends AppCompatActivity
         };
         adapter = new SampleListViewAdapter(elementListener);
         recyclerView.setAdapter(adapter);
+
+        // NeuralNetwork
+        /*
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+                .seed(110)
+                .l2(0.005)
+                .weightInit(WeightInit.XAVIER)
+                .updater(new Nesterovs(0.05))
+                .list()
+                .layer(0, new ConvolutionLayer.Builder(3, 3)
+                        .nIn(1)
+                        .stride(1, 1)
+                        .nOut(20)
+                        .activation(Activation.IDENTITY)
+                        .build())
+                .layer(1, new SubsamplingLayer.Builder(PoolingType.MAX)
+                        .kernelSize(2,2)
+                        .stride(2, 2)
+                        .build())
+                .layer(2, new ConvolutionLayer.Builder(3, 3)
+                        //Note that nIn need not be specified in later layers
+                        .stride(1, 1)
+                        .nOut(50)
+                        .activation(Activation.IDENTITY)
+                        .build())
+                .layer(3, new SubsamplingLayer.Builder(PoolingType.MAX)
+                        .kernelSize(2,2)
+                        .stride(2,2)
+                        .build())
+                .layer(4, new DenseLayer.Builder().activation(Activation.RELU)
+                        .nOut(100).build())
+                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+                        .nOut(2)
+                        .activation(Activation.SOFTMAX)
+                        .build())
+                .setInputType(InputType.convolutionalFlat(10, 3, 1))
+                .backprop(true).pretrain(false)
+                .build();
+
+        recognizer = new MultiLayerNetwork(conf);
+        recognizer.init();
+        */
     }
 
     @Override
@@ -134,8 +192,8 @@ public class MainActivity extends AppCompatActivity
                     sampleCollector.addSensorData(acceleratorData);
                     StringBuilder builder = new StringBuilder();
                     builder.append("X: ") .append(acceleratorData[0])
-                            .append(", Y: ") .append(acceleratorData[1])
-                            .append(", Z: ") .append(acceleratorData[2]);
+                           .append(", Y: ") .append(acceleratorData[1])
+                           .append(", Z: ") .append(acceleratorData[2]);
                     Log.i("SensorOnTimer", builder.toString());
                 }
             };

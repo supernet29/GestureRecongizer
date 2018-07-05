@@ -4,8 +4,11 @@ import java.util.LinkedList;
 
 public class GestureSample {
     private LinkedList<float[]> sampleData;
+    private int gestureCode;
+
     public GestureSample(){
-        sampleData = new LinkedList<>();
+        this.sampleData = new LinkedList<>();
+        this.gestureCode = -1;
     }
 
     public void addSensorData(float[] data){
@@ -18,5 +21,13 @@ public class GestureSample {
 
     public int getSampleLength() {
         return sampleData.size();
+    }
+
+    public int getGestureCode() {
+        return gestureCode;
+    }
+
+    public void setGestureCode(int gestureCode) {
+        this.gestureCode = gestureCode;
     }
 }
