@@ -25,6 +25,10 @@ public class GestureManager {
         return null;
     }
 
+    public int getGestureLength(){
+        return gestureList.size();
+    }
+
     public List<Gesture> getGestureList(){
         return gestureList;
     }

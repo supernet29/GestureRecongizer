@@ -3,6 +3,7 @@ package com.example.asuper.gesturerecognizer;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
@@ -19,10 +21,19 @@ import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYSeries;
 import com.example.asuper.gesturerecognizer.ui.gesturesample.ListAdapter;
 
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.Updater;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.cpu.nativecpu.NDArray;
+import org.nd4j.linalg.dataset.DataSet;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity
@@ -37,9 +48,9 @@ public class MainActivity extends AppCompatActivity
 
     private TextView countTextView;
     private Button collectButton;
+    private Button trainingButton;
 
     private XYPlot plot;
-    private Number[] domainLabels;
     private LineAndPointFormatter axFormater;
     private LineAndPointFormatter ayFormater;
     private LineAndPointFormatter azFormater;
@@ -126,46 +137,80 @@ public class MainActivity extends AppCompatActivity
         recyclerView.setAdapter(adapter);
 
         // NeuralNetwork
-        /*
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-                .seed(110)
-                .l2(0.005)
-                .weightInit(WeightInit.XAVIER)
-                .updater(new Nesterovs(0.05))
+                .updater(Updater.ADAM)
                 .list()
-                .layer(0, new ConvolutionLayer.Builder(3, 3)
-                        .nIn(1)
-                        .stride(1, 1)
-                        .nOut(20)
-                        .activation(Activation.IDENTITY)
-                        .build())
-                .layer(1, new SubsamplingLayer.Builder(PoolingType.MAX)
-                        .kernelSize(2,2)
-                        .stride(2, 2)
-                        .build())
-                .layer(2, new ConvolutionLayer.Builder(3, 3)
-                        //Note that nIn need not be specified in later layers
-                        .stride(1, 1)
+                .layer(0, new DenseLayer.Builder()
+                        .nIn(sensorSize*length)
                         .nOut(50)
-                        .activation(Activation.IDENTITY)
+                        .activation(Activation.RELU)
                         .build())
-                .layer(3, new SubsamplingLayer.Builder(PoolingType.MAX)
-                        .kernelSize(2,2)
-                        .stride(2,2)
+                .layer(1, new DenseLayer.Builder()
+                        .nIn(50)
+                        .nOut(50)
+                        .activation(Activation.RELU)
                         .build())
-                .layer(4, new DenseLayer.Builder().activation(Activation.RELU)
-                        .nOut(100).build())
-                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-                        .nOut(2)
+                .layer(2, new OutputLayer.Builder()
+                        .nIn(50)
+                        .nOut(gestureManager.getGestureLength())
                         .activation(Activation.SOFTMAX)
                         .build())
-                .setInputType(InputType.convolutionalFlat(10, 3, 1))
-                .backprop(true).pretrain(false)
+                .backprop(true)
                 .build();
-
         recognizer = new MultiLayerNetwork(conf);
         recognizer.init();
-        */
+
+        trainingButton = findViewById(R.id.training_btn);
+        trainingButton.setOnClickListener(new View.OnClickListener() {
+           @Override
+           public void onClick(final View v) {
+               trainingButton.setEnabled(false);
+               List<GestureSample> gestureSamples =  gestureSampleManager.getSampleList();
+               final NDArray input = new NDArray(gestureSamples.size(), sensorSize * length);
+               NDArray output = new NDArray(gestureSamples.size(), gestureManager.getGestureLength());
+               for(int i = 0; i < gestureSamples.size(); i++){
+                   GestureSample sample = gestureSamples.get(i);
+                   for(int j = 0; j < sample.getSampleLength(); j++) {
+                       float[] data = sample.getSampleData().get(j);
+                       input.putScalar(i, j * 3 + 0, data[0]);
+                       input.putScalar(i, j * 3 + 1, data[1]);
+                       input.putScalar(i, j * 3 + 2, data[2]);
+                   }
+
+                   for(int k = 0; k < gestureManager.getGestureLength(); k++) {
+                       if(k == sample.getGestureCode()){
+                           output.putScalar(i, k, 1);
+                       }else{
+                           output.putScalar(i, k, 0);
+                       }
+                   }
+               }
+
+               final DataSet trainingDataSet = new DataSet(input, output);
+
+               AsyncTask trainingTask = new AsyncTask() {
+                   @Override
+                   protected Object doInBackground(Object[] objects) {
+                       for(int i =0; i < 500; i++) {
+                          recognizer.fit(trainingDataSet);
+                       }
+                       return recognizer;
+                   }
+
+                   @Override
+                   protected void onPostExecute(Object o) {
+                       super.onPostExecute(o);
+                       int[] out = recognizer.predict(input);
+                       Toast.makeText(getApplicationContext(), "TrainingComplete", Toast.LENGTH_LONG).show();
+                       for(int i = 0; i < out.length; i++) {
+                           Log.i("Predict", i + " : " + out[i]);
+                       }
+                       trainingButton.setEnabled(true);
+                   }
+               };
+               trainingTask.execute();
+           }
+       });
     }
 
     @Override
