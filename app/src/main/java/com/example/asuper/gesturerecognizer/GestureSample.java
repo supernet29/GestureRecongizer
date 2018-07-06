@@ -8,7 +8,7 @@ public class GestureSample {
 
     public GestureSample(){
         this.sampleData = new LinkedList<>();
-        this.gestureCode = -1;
+        this.gestureCode = Gesture.NO_GESUTRE.getCode();
     }
 
     public void addSensorData(float[] data){

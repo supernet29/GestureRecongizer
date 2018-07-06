@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity
     private SensorTask sensorTask;
     private SampleCollector sampleCollector;
     private GestureSampleManager gestureSampleManager;
+    private GestureManager gestureManager;
 
     private TextView countTextView;
     private Button collectButton;
@@ -46,6 +47,9 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
     private ListAdapter adapter;
+
+    private final static int sensorSize = 3;
+    private final static int length = 10;
 
     private MultiLayerNetwork recognizer;
 
@@ -65,8 +69,11 @@ public class MainActivity extends AppCompatActivity
         });
 
         gestureSampleManager = new GestureSampleManager();
+        gestureManager = new GestureManager();
+        gestureManager.addGesture("Right");
+        gestureManager.addGesture("Left");
 
-        sampleCollector = new SampleCollector(10) {
+        sampleCollector = new SampleCollector(length) {
             @Override
             public void onSampleCollected(GestureSample sample) {
                 gestureSampleManager.addSample(sample);
@@ -81,7 +88,6 @@ public class MainActivity extends AppCompatActivity
         axFormater = new LineAndPointFormatter(this, R.xml.ax_formatter);
         ayFormater = new LineAndPointFormatter(this, R.xml.ay_formatter);
         azFormater = new LineAndPointFormatter(this, R.xml.az_formatter);
-        domainLabels = new Number[]{0, 1, 2, 3, 4};
         plot.getGraph().getLineLabelStyle(XYGraphWidget.Edge.BOTTOM);
 
         // sample manager;
@@ -116,10 +122,7 @@ public class MainActivity extends AppCompatActivity
             }
         };
         adapter = new ListAdapter(elementListener);
-        LinkedList<Gesture> gestures = new LinkedList<>();
-        gestures.add(new Gesture("Right", 0));
-        gestures.add(new Gesture("Left", 1));
-        adapter.setGestures(gestures);
+        adapter.setGestures(gestureManager.getGestureList());
         recyclerView.setAdapter(adapter);
 
         // NeuralNetwork
