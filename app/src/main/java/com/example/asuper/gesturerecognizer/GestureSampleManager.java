@@ -3,10 +3,10 @@ package com.example.asuper.gesturerecognizer;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SampleManager {
+public class GestureSampleManager {
     private LinkedList<GestureSample> sampleList;
 
-    public SampleManager() {
+    public GestureSampleManager() {
        sampleList = new LinkedList();
     }
 

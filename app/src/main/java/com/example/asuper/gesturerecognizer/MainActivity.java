@@ -3,13 +3,11 @@ package com.example.asuper.gesturerecognizer;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -19,24 +17,10 @@ import com.androidplot.xy.SimpleXYSeries;
 import com.androidplot.xy.XYGraphWidget;
 import com.androidplot.xy.XYPlot;
 import com.androidplot.xy.XYSeries;
+import com.example.asuper.gesturerecognizer.ui.gesturesample.ListAdapter;
 
-import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-import org.deeplearning4j.nn.conf.inputs.InputType;
-import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
-import org.deeplearning4j.nn.conf.layers.DenseLayer;
-import org.deeplearning4j.nn.conf.layers.OutputLayer;
-import org.deeplearning4j.nn.conf.layers.PoolingType;
-import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-import org.deeplearning4j.nn.weights.WeightInit;
-import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.learning.config.Nesterovs;
-import org.nd4j.linalg.lossfunctions.LossFunctions;
 
-import java.text.FieldPosition;
-import java.text.Format;
-import java.text.ParsePosition;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Timer;
@@ -48,7 +32,7 @@ public class MainActivity extends AppCompatActivity
     private Timer timer;
     private SensorTask sensorTask;
     private SampleCollector sampleCollector;
-    private SampleManager sampleManager;
+    private GestureSampleManager gestureSampleManager;
 
     private TextView countTextView;
     private Button collectButton;
@@ -61,7 +45,7 @@ public class MainActivity extends AppCompatActivity
 
     private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
-    private SampleListViewAdapter adapter;
+    private ListAdapter adapter;
 
     private MultiLayerNetwork recognizer;
 
@@ -80,13 +64,13 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        sampleManager = new SampleManager();
+        gestureSampleManager = new GestureSampleManager();
 
         sampleCollector = new SampleCollector(10) {
             @Override
             public void onSampleCollected(GestureSample sample) {
-                sampleManager.addSample(sample);
-                updateUIOnSample(sampleManager.getSampleList().size());
+                gestureSampleManager.addSample(sample);
+                updateUIOnSample(gestureSampleManager.getSampleList().size());
             }
         };
 
@@ -131,7 +115,11 @@ public class MainActivity extends AppCompatActivity
                 plot.redraw();
             }
         };
-        adapter = new SampleListViewAdapter(elementListener);
+        adapter = new ListAdapter(elementListener);
+        LinkedList<Gesture> gestures = new LinkedList<>();
+        gestures.add(new Gesture("Right", 0));
+        gestures.add(new Gesture("Left", 1));
+        adapter.setGestures(gestures);
         recyclerView.setAdapter(adapter);
 
         // NeuralNetwork
@@ -216,7 +204,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void run() {
                 countTextView.setText("Sample number: " + count);
-                adapter.setSamples(sampleManager.getSampleList());
+                adapter.setSamples(gestureSampleManager.getSampleList());
             }
         });
     }
